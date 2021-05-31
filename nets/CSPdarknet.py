@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 
 #-------------------------------------------------#
-#   MISH激活函数
+#   根据MISH激活函数的公式定义MISH激活函数
 #-------------------------------------------------#
 class Mish(nn.Module):
     def __init__(self):
@@ -16,10 +16,15 @@ class Mish(nn.Module):
         return x * torch.tanh(F.softplus(x))
 
 #---------------------------------------------------#
-#   卷积块 -> 卷积 + 标准化 + 激活函数
+#   CBM卷积块 = 卷积 + 标准化 + 激活函数
 #   Conv2d + BatchNormalization + Mish
+#   简称CBM,就是一个卷积块
 #---------------------------------------------------#
 class BasicConv(nn.Module):
+    # in_channels输入特征通道数
+    # out_channels输出特征通道数
+    # kernel_size卷积核尺寸
+    # stride=1 默认值为1，当调用此类若不传此参数则默认数值为1
     def __init__(self, in_channels, out_channels, kernel_size, stride=1):
         super(BasicConv, self).__init__()
 
@@ -53,7 +58,7 @@ class Resblock(nn.Module):
         return x + self.block(x)
 
 #--------------------------------------------------------------------#
-#   CSPdarknet的结构块
+#   CSPdarknet的结构块(大的残差块)
 #   首先利用ZeroPadding2D和一个步长为2x2的卷积块进行高和宽的压缩
 #   然后建立一个大的残差边shortconv、这个大残差边绕过了很多的残差结构
 #   主干部分会对num_blocks进行循环，循环内部是残差结构。
@@ -63,7 +68,7 @@ class Resblock_body(nn.Module):
     def __init__(self, in_channels, out_channels, num_blocks, first):
         super(Resblock_body, self).__init__()
         #----------------------------------------------------------------#
-        #   利用一个步长为2x2的卷积块进行高和宽的压缩
+        #   利用一个步长为2x2的卷积块进行高和宽的压缩,其实就是步长为2的下采样
         #----------------------------------------------------------------#
         self.downsample_conv = BasicConv(in_channels, out_channels, 3, stride=2)
 
@@ -93,19 +98,29 @@ class Resblock_body(nn.Module):
             #   主干部分会对num_blocks进行循环，循环内部是残差结构。
             #----------------------------------------------------------------#
             self.split_conv1 = BasicConv(out_channels, out_channels//2, 1)
+            # 残差结构的堆叠,也就是yolov4网络结构图中特征提取网络部分每一个大的残差块的堆叠
+            '''
+            *[Resblock(out_channels//2) for _ in range(num_blocks)]
+            为Python中的解包，可以搜索一下Python中*的用法
+            在这里是*是将列表中的数值取出来一个一个来用
+            '''
+            # 在这里也定义了残差块循环后的那个卷积层
             self.blocks_conv = nn.Sequential(
                 *[Resblock(out_channels//2) for _ in range(num_blocks)],
                 BasicConv(out_channels//2, out_channels//2, 1)
             )
 
             self.concat_conv = BasicConv(out_channels, out_channels, 1)
-
+    # 大残差块的前向传播
+    # 这里建议看一下CSPX(n)模块的网络结构图（yolov4-pytorch/yolov4网络架构图/input416x416other.png）
     def forward(self, x):
+        # 下采样
         x = self.downsample_conv(x)
-
+        # 定义大残差边，也就是图CSPX(n)中的Part1部分
         x0 = self.split_conv0(x)
-
+        # 定义n个残差块之前的卷积，也就是图CSPX(n)中的Part2部分
         x1 = self.split_conv1(x)
+        # 定义了残差块循环的部分
         x1 = self.blocks_conv(x1)
 
         #------------------------------------#
@@ -125,11 +140,16 @@ class Resblock_body(nn.Module):
 #   输出为三个有效特征层
 #---------------------------------------------------#
 class CSPDarkNet(nn.Module):
+    # layers = [1, 2, 8, 8, 4]，列表中包含了每个大的残差块循环的次数
     def __init__(self, layers):
         super(CSPDarkNet, self).__init__()
+        # self.inplanes = 32对应了特征提取网络第一个卷积层（CBM）的输出特征通道数
+        # 同时self.inplanes = 32也对应了第一个大残差块的输入特征通道数
         self.inplanes = 32
+        # 第一个CBM
         # 416,416,3 -> 416,416,32
         self.conv1 = BasicConv(3, self.inplanes, kernel_size=3, stride=1)
+        # feature_channels列表定义了每个大残差块的输出特征通道数
         self.feature_channels = [64, 128, 256, 512, 1024]
 
         self.stages = nn.ModuleList([
@@ -154,7 +174,7 @@ class CSPDarkNet(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
 
-
+    # 整个特征提取网络的前向传播过程
     def forward(self, x):
         x = self.conv1(x)
 
@@ -163,10 +183,11 @@ class CSPDarkNet(nn.Module):
         out3 = self.stages[2](x)
         out4 = self.stages[3](out3)
         out5 = self.stages[4](out4)
-
+        # 返回最后三层的特征向量，以便于后续的操作
         return out3, out4, out5
 
 def darknet53(pretrained, **kwargs):
+    # CSPDarkNet中传入的列表是特征提取网络中每个大的残差块堆叠的次数
     model = CSPDarkNet([1, 2, 8, 8, 4])
     if pretrained:
         if isinstance(pretrained, str):
