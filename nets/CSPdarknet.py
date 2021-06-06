@@ -40,7 +40,7 @@ class BasicConv(nn.Module):
 
 #---------------------------------------------------#
 #   CSPdarknet的结构块的组成部分
-#   内部堆叠的残差块
+#   内部堆叠的残差块和yolov3中的残差块的定义类似，都是先1x1卷积，再3x3卷积   
 #---------------------------------------------------#
 class Resblock(nn.Module):
     def __init__(self, channels, hidden_channels=None):
