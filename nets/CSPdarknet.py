@@ -72,7 +72,7 @@ class Resblock_body(nn.Module):
         #   利用一个步长为2x2的卷积块进行高和宽的压缩,其实就是步长为2的下采样
         #----------------------------------------------------------------#
         self.downsample_conv = BasicConv(in_channels, out_channels, 3, stride=2)
-
+        # 如果大残差块不循环则调用if first中的代码
         if first:
             #--------------------------------------------------------------------------#
             #   然后建立一个大的残差边self.split_conv0、这个大残差边绕过了很多的残差结构
@@ -89,6 +89,7 @@ class Resblock_body(nn.Module):
             )
 
             self.concat_conv = BasicConv(out_channels*2, out_channels, 1)
+        # 如果大残差块要循环则会调用else中的代码
         else:
             #--------------------------------------------------------------------------#
             #   然后建立一个大的残差边self.split_conv0、这个大残差边绕过了很多的残差结构
