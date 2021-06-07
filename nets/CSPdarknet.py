@@ -65,6 +65,7 @@ class Resblock(nn.Module):
 #   对于整个CSPdarknet的结构块，就是一个大残差块+内部多个小残差块
 #--------------------------------------------------------------------#
 class Resblock_body(nn.Module):
+    # first参数是用来判断打残差块是否循环的标志
     def __init__(self, in_channels, out_channels, num_blocks, first):
         super(Resblock_body, self).__init__()
         #----------------------------------------------------------------#
