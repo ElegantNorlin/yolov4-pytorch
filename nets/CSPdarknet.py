@@ -87,7 +87,7 @@ class Resblock_body(nn.Module):
                 Resblock(channels=out_channels, hidden_channels=out_channels//2),
                 BasicConv(out_channels, out_channels, 1)
             )
-
+            # 这里的卷积降维了
             self.concat_conv = BasicConv(out_channels*2, out_channels, 1)
         # 如果大残差块要循环则会调用else中的代码
         else:
