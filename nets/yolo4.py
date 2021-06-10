@@ -4,9 +4,16 @@ import torch
 import torch.nn as nn
 
 from nets.CSPdarknet import darknet53
-
-
+# yolo4.py文件中除了最后yolohead没有用conv2d函数定义的卷积，其余都是conv2d卷积，该卷积的特点是输入、输出特征尺寸(宽和高)相等
+# 定义CBL卷积层
+# filter_in输入特征通道数
+# filter_out输出特征通道数
+# kernel_size卷积核尺寸
+# stride卷积步长
 def conv2d(filter_in, filter_out, kernel_size, stride=1):
+    # 动态的定义填充padding的数值，这样卷积出来的特征尺寸才会与原来相等
+    # if语句中的情况是：如果卷积核尺寸为1，则填充为0，此时CBL卷积输出特征的尺寸与输入特征尺寸相等
+    # pad的计算公式带入卷积公式得到输出特征尺寸与输入特征尺寸相等
     pad = (kernel_size - 1) // 2 if kernel_size else 0
     return nn.Sequential(OrderedDict([
         ("conv", nn.Conv2d(filter_in, filter_out, kernel_size=kernel_size, stride=stride, padding=pad, bias=False)),
@@ -15,23 +22,29 @@ def conv2d(filter_in, filter_out, kernel_size, stride=1):
     ]))
 
 #---------------------------------------------------#
-#   SPP结构，利用不同大小的池化核进行池化
+#   SPP（空间金字塔池化）结构，利用不同大小的池化核进行池化
 #   池化后堆叠
 #---------------------------------------------------#
 class SpatialPyramidPooling(nn.Module):
+    # pool_sizes为池化核尺寸列表
     def __init__(self, pool_sizes=[5, 9, 13]):
         super(SpatialPyramidPooling, self).__init__()
-
+        # 定义三个最大池化网络
+        # pool_size为最大池化核尺寸
+        # pool_size//2为最大池化填充padding
         self.maxpools = nn.ModuleList([nn.MaxPool2d(pool_size, 1, pool_size//2) for pool_size in pool_sizes])
 
     def forward(self, x):
+        # [::-1]从后向前取所有元素
         features = [maxpool(x) for maxpool in self.maxpools[::-1]]
+        # 特征拼接
         features = torch.cat(features + [x], dim=1)
 
         return features
 
 #---------------------------------------------------#
 #   卷积 + 上采样
+#   上采样函数中先是一层卷积，然后才是上采样层
 #---------------------------------------------------#
 class Upsample(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -48,7 +61,9 @@ class Upsample(nn.Module):
 
 #---------------------------------------------------#
 #   三次卷积块
+#   这三次卷积位于SPP模块前后
 #---------------------------------------------------#
+# in_filters为第一次卷积的输入特征通道数
 def make_three_conv(filters_list, in_filters):
     m = nn.Sequential(
         conv2d(in_filters, filters_list[0], 1),
@@ -94,9 +109,11 @@ class YoloBody(nn.Module):
         #   13,13,1024
         #---------------------------------------------------#
         self.backbone = darknet53(None)
-
+        # 第一个三层卷积
         self.conv1 = make_three_conv([512,1024],1024)
+        # SPP模块
         self.SPP = SpatialPyramidPooling()
+        # 第二个三层卷积
         self.conv2 = make_three_conv([512,1024],2048)
 
         self.upsample1 = Upsample(512,256)
@@ -128,6 +145,7 @@ class YoloBody(nn.Module):
 
     def forward(self, x):
         #  backbone
+        # x2,x1,x0的尺寸从小到大排序
         x2, x1, x0 = self.backbone(x)
 
         # 13,13,1024 -> 13,13,512 -> 13,13,1024 -> 13,13,512 -> 13,13,2048 
