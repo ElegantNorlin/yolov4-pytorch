@@ -87,7 +87,7 @@ class Resblock_body(nn.Module):
                 Resblock(channels=out_channels, hidden_channels=out_channels//2),
                 BasicConv(out_channels, out_channels, 1)
             )
-            # 这里的卷积降维了
+            # 这里的卷积降维了,调整通道数
             self.concat_conv = BasicConv(out_channels*2, out_channels, 1)
         # 如果大残差块要循环则会调用else中的代码
         else:
@@ -111,7 +111,7 @@ class Resblock_body(nn.Module):
                 *[Resblock(out_channels//2) for _ in range(num_blocks)],
                 BasicConv(out_channels//2, out_channels//2, 1)
             )
-
+            # 定义了一系列残差操作完成后的卷积层
             self.concat_conv = BasicConv(out_channels, out_channels, 1)
     # 大残差块的前向传播
     # 这里建议看一下CSPX(n)模块的网络结构图（yolov4-pytorch/yolov4网络架构图/input416x416other.png）
@@ -130,7 +130,7 @@ class Resblock_body(nn.Module):
         #------------------------------------#
         x = torch.cat([x1, x0], dim=1)
         #------------------------------------#
-        #   最后对通道数进行整合
+        #   残差拼接操作后还有一层卷积层，调整通道数最后对通道数进行整合
         #------------------------------------#
         x = self.concat_conv(x)
 
