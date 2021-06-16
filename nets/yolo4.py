@@ -11,7 +11,7 @@ from nets.CSPdarknet import darknet53
 # kernel_size卷积核尺寸
 # stride卷积步长
 def conv2d(filter_in, filter_out, kernel_size, stride=1):
-    # 动态的定义填充padding的数值，这样卷积出来的特征尺寸才会与原来相等
+    # 动态的定义填充padding的数值，这样卷积出来的特征尺寸才会与原来相等(前提是stride=1)
         # if语句中的情况是：如果卷积核尺寸为1，则填充为0，此时CBL卷积输出特征的尺寸与输入特征尺寸相等
         # pad的计算公式带入卷积公式得到输出特征尺寸与输入特征尺寸相等
     pad = (kernel_size - 1) // 2 if kernel_size else 0
