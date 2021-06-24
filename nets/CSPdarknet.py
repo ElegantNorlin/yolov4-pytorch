@@ -106,7 +106,7 @@ class Resblock_body(nn.Module):
             为Python中的解包，可以搜索一下Python中*的用法
             在这里是*是将列表中的数值取出来一个一个来用
             '''
-            # 在这里也定义了残差块循环后的那个卷积层
+            # 在blocks_conv中也同时定义了残差块循环后的那个卷积层
             self.blocks_conv = nn.Sequential(
                 *[Resblock(out_channels//2) for _ in range(num_blocks)],
                 BasicConv(out_channels//2, out_channels//2, 1)
@@ -150,6 +150,7 @@ class CSPDarkNet(nn.Module):
         self.inplanes = 32
         # 第一个CBM
         # 416,416,3 -> 416,416,32
+        # self.conv1.shape = torch.Size([8, 32, 416, 416])
         self.conv1 = BasicConv(3, self.inplanes, kernel_size=3, stride=1)
         # feature_channels列表定义了每个大残差块的输出特征通道数
         self.feature_channels = [64, 128, 256, 512, 1024]
@@ -178,14 +179,88 @@ class CSPDarkNet(nn.Module):
 
     # 整个特征提取网络的前向传播过程
     def forward(self, x):
+        # self.conv1.shape = torch.Size([8, 32, 416, 416])
         x = self.conv1(x)
-
+        # 第一轮CSP
+        '''
+        CSP中的下采样层.shape = torch.Size([8, 64, 208, 208])
+        残差边.shape = torch.Size([8, 64, 208, 208])
+        ResunitBefore.shape = torch.Size([8, 64, 208, 208])
+        Resblock.shape = torch.Size([8, 64, 208, 208])
+        残差循环 + 残差后的一层卷积.shape = torch.Size([8, 64, 208, 208])
+        Concat.shape = torch.Size([8, 128, 208, 208])
+        ConcatAfterConv.shape = torch.Size([8, 64, 208, 208])
+        '''
         x = self.stages[0](x)
+        # 第二轮CSP
+        '''
+        CSP中的下采样层.shape = torch.Size([8, 128, 104, 104])
+        残差边.shape = torch.Size([8, 64, 104, 104])
+        ResunitBefore.shape = torch.Size([8, 64, 104, 104])
+        Resblock.shape = torch.Size([8, 64, 104, 104])
+        Resblock.shape = torch.Size([8, 64, 104, 104])
+        残差后的那一层卷积没有改变通道数
+        Concat.shape = torch.Size([8, 128, 104, 104])
+        ConcatAfterConv.shape = torch.Size([8, 128, 104, 104])
+        '''
         x = self.stages[1](x)
+        # 第三轮CSP
+        '''
+        CSP中的下采样层.shape = torch.Size([8, 256, 52, 52])
+        残差边.shape = torch.Size([8, 128, 52, 52])
+        ResunitBefore.shape = torch.Size([8, 128, 52, 52])
+        8次循环
+        Resblock.shape = torch.Size([8, 128, 52, 52])
+        Resblock.shape = torch.Size([8, 128, 52, 52])
+        Resblock.shape = torch.Size([8, 128, 52, 52])
+        Resblock.shape = torch.Size([8, 128, 52, 52])
+        Resblock.shape = torch.Size([8, 128, 52, 52])
+        Resblock.shape = torch.Size([8, 128, 52, 52])
+        Resblock.shape = torch.Size([8, 128, 52, 52])
+        Resblock.shape = torch.Size([8, 128, 52, 52])
+        残差后的那一层卷积没有改变通道数
+        Concat.shape = torch.Size([8, 256, 52, 52])
+        ConcatAfterConv.shape = torch.Size([8, 256, 52, 52])
+        '''
         out3 = self.stages[2](x)
+        # 第四轮CSP
+        '''
+        CSP中的下采样层.shape = torch.Size([8, 512, 26, 26])
+        残差边.shape = torch.Size([8, 256, 26, 26])
+        ResunitBefore.shape = torch.Size([8, 256, 26, 26])
+        Resblock.shape = torch.Size([8, 256, 26, 26])
+        Resblock.shape = torch.Size([8, 256, 26, 26])
+        Resblock.shape = torch.Size([8, 256, 26, 26])
+        Resblock.shape = torch.Size([8, 256, 26, 26])
+        Resblock.shape = torch.Size([8, 256, 26, 26])
+        Resblock.shape = torch.Size([8, 256, 26, 26])
+        Resblock.shape = torch.Size([8, 256, 26, 26])
+        Resblock.shape = torch.Size([8, 256, 26, 26])
+        残差后的那一层卷积没有改变通道数
+        Concat.shape = torch.Size([8, 512, 26, 26])
+        ConcatAfterConv.shape = torch.Size([8, 512, 26, 26])
+        '''
         out4 = self.stages[3](out3)
+        # 第五轮CSP
+        '''
+        CSP中的下采样层.shape = torch.Size([8, 1024, 13, 13])
+        残差边.shape = torch.Size([8, 512, 13, 13])
+        ResunitBefore.shape = torch.Size([8, 512, 13, 13])
+        Resblock.shape = torch.Size([8, 512, 13, 13])
+        Resblock.shape = torch.Size([8, 512, 13, 13])
+        Resblock.shape = torch.Size([8, 512, 13, 13])
+        Resblock.shape = torch.Size([8, 512, 13, 13])
+        残差后的那一层卷积没有改变通道数
+        Concat.shape = torch.Size([8, 1024, 13, 13])
+        ConcatAfterConv.shape = torch.Size([8, 1024, 13, 13])
+        '''
         out5 = self.stages[4](out4)
         # 返回最后三层的特征向量，以便于后续的操作
+        '''
+        out3.shape = torch.Size([8, 256, 52, 52])
+        out4.shape = torch.Size([8, 512, 26, 26])
+        out5.shape = torch.Size([8, 1024, 13, 13])
+        '''
         return out3, out4, out5
 
 def darknet53(pretrained, **kwargs):
