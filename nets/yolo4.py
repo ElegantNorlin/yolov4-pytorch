@@ -32,6 +32,11 @@ class SpatialPyramidPooling(nn.Module):
         # 定义三个最大池化网络
         # pool_size为最大池化核尺寸
         # pool_size//2为最大池化填充padding
+        '''
+        如果对于卷积操作比较敏感的话
+        一看这里设置的最大池化参数就知道，每一个不同池化核池化后特征的长、宽尺寸
+        都是不变的
+        '''
         self.maxpools = nn.ModuleList([nn.MaxPool2d(pool_size, 1, pool_size//2) for pool_size in pool_sizes])
 
     def forward(self, x):
