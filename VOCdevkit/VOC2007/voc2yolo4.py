@@ -17,6 +17,7 @@ FileNotFoundError: [WinError 3] 系统找不到指定的路径。: './VOCdevkit/
 默认是将数据集的训练集和测试集中的所有图片放入"./JPEGImages"文件夹下
 
 如果你不想按照上述方法进行划分数据集，那么可以手动的生成test.txt和2007_test.txt
+貌似2007_test.txt这个文件没有用到
 '''
 
 import os
