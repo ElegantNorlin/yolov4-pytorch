@@ -21,7 +21,9 @@ saveBasePath=r"./VOCdevkit/VOC2007/ImageSets/Main/"
 #   想要增加测试集修改trainval_percent
 #   train_percent不需要修改
 #----------------------------------------------------------------------#
+# 训练时测试集的图片数量，最后生成的训练集和训练时的测试集是一样的，剩下的就收test测试集
 trainval_percent=1
+# 训练集图片的数量，保持1不变，通过调整trainval_percent来调整训练集的数量
 train_percent=1
 
 temp_xml = os.listdir(xmlfilepath)
@@ -45,6 +47,7 @@ ftest = open(os.path.join(saveBasePath,'test.txt'), 'w')
 ftrain = open(os.path.join(saveBasePath,'train.txt'), 'w')  
 fval = open(os.path.join(saveBasePath,'val.txt'), 'w')  
  
+# 最后生成的训练集和训练时的测试集时一摸一样的，剩下的就是test测试集
 for i  in list:  
     name=total_xml[i][:-4]+'\n'  
     if i in trainval:  
