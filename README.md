@@ -7,14 +7,15 @@
 ## 目录
 1. [性能情况 Performance](#性能情况)
 2. [实现的内容 Achievement](#实现的内容)
-3. [所需环境 Environment](#所需环境)
-4. [注意事项 Attention](#注意事项)
-5. [小技巧的设置 TricksSet](#小技巧的设置)
-6. [文件下载 Download](#文件下载)
-7. [预测步骤 How2predict](#预测步骤)
-8. [训练步骤 How2train](#训练步骤)
-9. [评估步骤 How2eval](#评估步骤)
-10. [参考资料 Reference](#Reference)
+3. [文件输出及流程](#文件输出及流程)
+4. [所需环境 Environment](#所需环境)
+5. [注意事项 Attention](#注意事项)
+6. [小技巧的设置 TricksSet](#小技巧的设置)
+7. [文件下载 Download](#文件下载)
+8. [预测步骤 How2predict](#预测步骤)
+9. [训练步骤 How2train](#训练步骤)
+10. [评估步骤 How2eval](#评估步骤)
+11. [参考资料 Reference](#Reference)
 
 ## 性能情况
 | 训练数据集 | 权值文件名称 | 测试数据集 | 输入图片大小 | mAP 0.5:0.95 | mAP 0.5 |
@@ -29,6 +30,28 @@
 - [x] 训练用到的小技巧：Mosaic数据增强、Label Smoothing平滑、CIOU、学习率余弦退火衰减
 - [x] 激活函数：使用Mish激活函数
 - [ ] ……balabla
+
+## 文件输出及流程
+
+CSPdarknet.py  ---->  输出了特征提取过程中最后三个大残差块的特征
+
+yolo4.py      ---->  输出了特征金字塔回归、预测三个阶段最后输出的特征
+
+数据集采用VOC格式，数据集文件夹下有三个文件夹
+
+* Annotations ----> xml文件
+
+* ImageSets ----> 下面有个Main文件夹，文件夹下有train.txt存放的是训练图片去掉后缀的名称
+
+  train.txt是由voc2yolo3.py生成
+
+* JPEGImages ----> 下面是训练的图片
+
+* voc_annotation.py生成2007_train.txt,2007_test.txt生成训练、测试时的一些信息
+
+* get_dr_txt.py ----> 生成test测试集预测框信息txt文件
+
+* get_gt_txt.py ----> 生成test测试集真实框信息txt文件
 
 ## 所需环境
 torch==1.2.0
