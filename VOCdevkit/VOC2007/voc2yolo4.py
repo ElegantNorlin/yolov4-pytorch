@@ -34,6 +34,7 @@ num=len(total_xml)
 list=range(num)  
 tv=int(num*trainval_percent)  
 tr=int(tv*train_percent)  
+# sample()方法返回一个列表，其中从序列中随机选择指定数量的项目。并且不会改变原有数组的序列
 trainval= random.sample(list,tv)  
 train=random.sample(trainval,tr)  
  
