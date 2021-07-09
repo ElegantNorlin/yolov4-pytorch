@@ -23,7 +23,7 @@ class Mish(nn.Module):
 class BasicConv(nn.Module):
     # in_channels输入特征通道数
     # out_channels输出特征通道数
-    # kernel_size卷积核尺寸
+    # kernel_size卷积核尺寸，kernel_size//2，所以卷机后长和宽仍然不变
     # stride=1 默认值为1，当调用此类若不传此参数则默认数值为1
     def __init__(self, in_channels, out_channels, kernel_size, stride=1):
         super(BasicConv, self).__init__()
