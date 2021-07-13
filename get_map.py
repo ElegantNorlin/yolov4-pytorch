@@ -35,7 +35,8 @@ args = parser.parse_args()
   (height)            *
                 (Right,Bottom)
 '''
-
+# 如果在计算mAP时要去掉某些累，就可以把该类的名称的字符串填入args.ignore列表
+# 这样我们可以单独计算某个类别的AP
 if args.ignore is None:
     args.ignore = []
 
